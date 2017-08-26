@@ -112,7 +112,7 @@ c <- ggplot (data = district_chum_sum) +
   geom_point(mapping = aes(x = year, y = chum_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
-  geom_hline(y-intercept = 100000)+
+  #geom_hline(y-intercept = 100000)+
   facet_wrap(~ district, nrow = 4, scales = "free_y")
 c
 
