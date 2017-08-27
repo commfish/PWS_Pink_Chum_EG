@@ -55,11 +55,16 @@ even_pink_quantiles <- district_pink_even %>%
 glimpse(even_pink_quantiles)
 even_pink_quantiles
 
+#upper quantiles....use this for the figures
+up_pink_even <- even_pink_quantiles %>%
+  filter(p == .6)
 
+low_pink_even <- even_pink_quantiles %>%
+  filter(p== .2)
 
 
 #######################################################################################
-#calculate 20th and 60th percentiles for ODD year pink salmon for each district
+#calculate 25th and 75th percentiles for ODD year pink salmon for each district
 probs <- c(0.25, 0.75)
 odd_pink_quantiles <- district_pink_odd %>%
   filter(year >"1979") %>%  #Only includes years from 1981-present, but not 2016
@@ -69,7 +74,12 @@ odd_pink_quantiles <- district_pink_odd %>%
 glimpse(odd_pink_quantiles)
 odd_pink_quantiles
 
+#upper quantiles....use this for the figures
+up_pink_odd <- odd_pink_quantiles %>%
+  filter(p == .75)
 
+low_pink_odd <- odd_pink_quantiles %>%
+  filter(p== .25)
 
 ########################################################################################
 #Summarize CHUM harvests across districts for each year, we can drop broodlines
@@ -112,27 +122,34 @@ c <- ggplot (data = district_chum_sum) +
   geom_point(mapping = aes(x = year, y = chum_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
-  geom_hline(data=upper_chum, yintercept = upper_chum$q)+ ###How to add upper and lower lines for each escapement goals???
+  geom_hline(data=upper_chum, aes(yintercept = q))+ ###How to add upper and lower lines for each escapement goals???
+  geom_hline(data=lower_chum, aes(yintercept = q), colour="salmon")+
   facet_wrap(~ district, nrow = 4, scales = "free_y")
 c
 
 
 
 #Figure of PINK salmon escapments and proposed goals
+#Proposed goal for EVEN year pink salmon
 p_even <- ggplot (data = district_pink_even) +
   theme_bw()+
   geom_point(mapping = aes(x = year, y = pink_dist)) +
   labs(x = "Years", y = "Escapement") +
-  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=1964, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_hline(data=up_pink_even, aes(yintercept = q))+
+  geom_hline(data=low_pink_even, aes(yintercept = q), colour="salmon")+
   facet_wrap(~ district, nrow = 4, scales = "free_y")
 p_even
 
 
+#Proposed goal for ODD year pink salmon
 p_odd <- ggplot (data = district_pink_odd) +
   theme_bw()+
   geom_point(mapping = aes(x = year, y = pink_dist)) +
   labs(x = "Years", y = "Escapement") +
-  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005) + #shade years w/ too few surveys
+  geom_hline(data=up_pink_odd, aes(yintercept = q))+
+  geom_hline(data=low_pink_odd, aes(yintercept = q), colour="salmon")+
   facet_wrap(~ district, nrow = 4, scales = "free_y")
 p_odd
 
