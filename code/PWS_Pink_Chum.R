@@ -8,6 +8,8 @@ library(tidyverse)
 options(scipen=9999)
 
 #data----
+#This starts with area-under-the-curve (AUC) data for individual streams, which have not
+#been adjusted for stream life. These were taken from the tab '
 PWSPinkChum <- read_csv("data/PWS_Pink_Chum_EG.csv")
 
 PWSPinkChum %>%  #adjust area under the curve values for stream life
