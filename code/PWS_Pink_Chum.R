@@ -8,11 +8,30 @@ library(tidyverse)
 options(scipen=9999)
 
 #data----
-#This starts with area-under-the-curve (AUC) data for individual streams, which have not
-#been adjusted for stream life. These were taken from the tab '
+#Here I start with area-under-the-curve (AUC) data for individual streams, not
+#yet adjusted for (divided by) stream life.
+#The data were taken from the tab 'AUC_Pivot_Index' from the spreadsheet made by
+#Steve Moffitt (recently retired ADF&G, Cordova). Spreadsheet titled:
+#'PWS_AUC_1962-2016_Subset for 2015 index streams.xls'
+#These data have already been subsetted to only include the ~134 streams
+#determined in 2015 to be used for future surveys. There were ~215 streams
+#originally surveyed between 1963-2014, but Steve did included all of these here.
+#In the future: recreate all adjusted AUC estimates from the original raw data to make
+#this exercise reproducible!  
+#To do this:
+#(1) From the raw data, only the ~134 "current" streams would be retained.
+#(2) Raw counts for individual streams flown >= 3 times would integrated across
+#    the season using trapezoidal integration. This = area-under-the-curve (AUC).
+#(3) AUC would be adjusted for stream life. For chum salmon, an average stream life
+#    of 12.6 days is used for the entire PWS. For pink salmon, stream-specific stream
+#   life is used. AUC/stream life = adjusted AUC
+#(4) Adjusted AUCs of individual streams are summed within each district.
+#(5) For pink salmon, districts 222 (Northern) and 229 (Unakwik) are summed together.
+#     R. Brenner 6 Sept. 2016
 PWSPinkChum <- read_csv("data/PWS_Pink_Chum_EG.csv")
 
-PWSPinkChum %>%  #adjust area under the curve values for stream life
+#adjust area under the curve values for stream life
+PWSPinkChum %>%  
   mutate(pink_adjstd = round(Sum_P_AUC/pink_strm_life, digits =0),
          chum_adjstd = round(Sum_C_AUC/chum_strm_life, digits=0)) -> PWSPinkChum
 glimpse(PWSPinkChum)
@@ -20,7 +39,7 @@ glimpse(PWSPinkChum)
 
 #For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
   PWSPinkChum %>%   
-  mutate(district = ifelse(district == 229, 222, district)) -> out #out is a temporary file for
+  mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
                                                                   #pink analyses only!
 
   
@@ -28,7 +47,7 @@ glimpse(PWSPinkChum)
 district_pink_even <- out %>% 
   group_by(year, broodline, district) %>% 
   filter(broodline == "Even")%>%
-  summarize(pink_dist = sum(pink_adjstd), #sums each yearxbroodlinexdistrict combination
+  summarize(pink_dist = sum(pink_adjstd), #sums each year x broodline x district combination
             n = n() #counts the number of streams surveyed per district
   )  
 glimpse(district_pink_odd)
@@ -48,6 +67,7 @@ glimpse(district_pink_odd)
 
 ######################################################################################
 #calculate 20th and 60th percentiles for EVEN year pink salmon for each district
+#for proposed spawning escapement goals
 probs <- c(0.20, 0.60)
 even_pink_quantiles <- district_pink_even %>%
   filter(year >"1980") %>%  #Only includes years from 1982-present
@@ -67,6 +87,7 @@ low_pink_even <- even_pink_quantiles %>%
 
 #######################################################################################
 #calculate 25th and 75th percentiles for ODD year pink salmon for each district
+#for proposed spawning escapement goals
 probs <- c(0.25, 0.75)
 odd_pink_quantiles <- district_pink_odd %>%
   filter(year >"1979") %>%  #Only includes years from 1981-present, but not 2016
@@ -97,6 +118,7 @@ glimpse(district_chum_sum)
 
 #######################################################################################
 #calculate 20th and 60th percentiles for chum salmon for each chum district
+#for proposed spawning escapement goals
 probs <- c(0.20, 0.60)
 chum_quantiles <- district_chum_sum %>%
   filter(year >"1979", year != "2016") %>%  #Only includes years from 1980-present, but not 2016
