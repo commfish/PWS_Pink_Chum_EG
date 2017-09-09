@@ -1,5 +1,5 @@
 #Analysis by Rich Brenner 
-#Updated 21 Aug. 2017
+#Updated 6 Sept. 2017
 
 #load----
 library(arm)
@@ -12,25 +12,27 @@ options(scipen=9999)
 #yet adjusted for (divided by) stream life.
 #The data were taken from the tab 'AUC_Pivot_Index' from the spreadsheet made by
 #Steve Moffitt (recently retired ADF&G, Cordova). Spreadsheet titled:
-#'PWS_AUC_1962-2016_Subset for 2015 index streams.xls'
+#   'PWS_AUC_1962-2016_Subset for 2015 index streams.xls'
 #These data have already been subsetted to only include the ~134 streams
 #determined in 2015 to be used for future surveys. There were ~215 streams
-#originally surveyed between 1963-2014, but Steve did included all of these here.
-#In the future: recreate all adjusted AUC estimates from the original raw data to make
-#this exercise reproducible!  
-#To do this:
-#(1) From the raw data, only the ~134 "current" streams would be retained.
-#(2) Raw counts for individual streams flown >= 3 times would integrated across
+#originally surveyed between 1963-2014, but Steve did not include all of these here.
+#In the future: recreate district-wide adjusted-AUC estimates from the original raw 
+#data to make this exercise reproducible! To do this:
+
+
+#(1) From the complete raw aerial survey data containing all stream surveys, 
+#    only the ~134 "current" streams would be retained for the new escapement goal.
+#(2) Raw counts for individual streams flown >= 3 times would be integrated across
 #    the season using trapezoidal integration. This = area-under-the-curve (AUC).
 #(3) AUC would be adjusted for stream life. For chum salmon, an average stream life
 #    of 12.6 days is used for the entire PWS. For pink salmon, stream-specific stream
-#   life is used. AUC/stream life = adjusted AUC
-#(4) Adjusted AUCs of individual streams are summed within each district.
-#(5) For pink salmon, districts 222 (Northern) and 229 (Unakwik) are summed together.
-#     R. Brenner 6 Sept. 2016
+#    life is used. AUC/stream life = adjusted-AUC
+#(4) Adjusted-AUCs of individual streams are summed within each district. But, for 
+#    pink salmon goals, districts 222 (Northern) and 229 (Unakwik) are summed together.
+# R. Brenner 6 Sept. 2016
 PWSPinkChum <- read_csv("data/PWS_Pink_Chum_EG.csv")
 
-#adjust area under the curve values for stream life
+#adjust area-under-the-curve values for stream life
 PWSPinkChum %>%  
   mutate(pink_adjstd = round(Sum_P_AUC/pink_strm_life, digits =0),
          chum_adjstd = round(Sum_C_AUC/chum_strm_life, digits=0)) -> PWSPinkChum
@@ -40,7 +42,7 @@ glimpse(PWSPinkChum)
 #For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
   PWSPinkChum %>%   
   mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
-                                                                  #pink analyses only!
+                                                                  #PINK analyses only!
 
   
 #Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
@@ -61,8 +63,6 @@ district_pink_odd <- out %>%
             n = n() #counts the number of streams surveyed per district
 )
 glimpse(district_pink_odd)
-
-
 
 
 ######################################################################################
@@ -132,9 +132,11 @@ chum_quantiles
 #upper quantiles
 upper_chum <- chum_quantiles %>%
   filter(p == .6)
+upper_chum
 
 lower_chum <- chum_quantiles %>%
   filter(p== .2)
+lower_chum
 
 
 ######################################################################################
@@ -146,7 +148,7 @@ c <- ggplot (data = district_chum_sum) +
   geom_point(mapping = aes(x = year, y = chum_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
-  geom_hline(data=upper_chum, aes(yintercept = q))+ ###How to add upper and lower lines for each escapement goals???
+  geom_hline(data=upper_chum, aes(yintercept = q))+ ###add upper and lower lines for each escapement goals???
   geom_hline(data=lower_chum, aes(yintercept = q), colour="salmon")+
   facet_wrap(~ district, nrow = 4, scales = "free_y")
 c
