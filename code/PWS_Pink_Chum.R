@@ -1,120 +1,76 @@
 #Analysis by Rich Brenner 
 #Updated 6 Sept. 2017
 
-#load----
+# Notes ----
+# area-under-the-curve (AUC) data for individual streams, not
+# adjusted for (divided by) stream life.
+# Data are from the tab 'AUC_Pivot_Index' from the Spreadsheet titled:
+#   'PWS_AUC_1962-2016_Subset for 2015 index streams.xls' made by
+# Steve Moffitt (recently retired ADF&G, Cordova). 
+
+# These data have been subsetted to only include the ~134 streams
+# determined in 2015 to be used for future surveys. There were ~215 streams
+# originally surveyed between 1963-2014, but Steve did not include all of these   here.
+# In the future: recreate district-wide adjusted-AUC estimates from the original raw data to make this exercise reproducible! To do this:
+
+# load----
 library(arm)
-library(gdata)
 library(tidyverse)
 options(scipen=9999)
+theme_set(theme_bw(base_size=12)+ 
+			 	theme(panel.grid.major = element_blank(),
+			 			panel.grid.minor = element_blank()))
 
 #data----
-#Here I start with area-under-the-curve (AUC) data for individual streams, not
-#yet adjusted for (divided by) stream life.
-#The data were taken from the tab 'AUC_Pivot_Index' from the spreadsheet made by
-#Steve Moffitt (recently retired ADF&G, Cordova). Spreadsheet titled:
-#   'PWS_AUC_1962-2016_Subset for 2015 index streams.xls'
-#These data have already been subsetted to only include the ~134 streams
-#determined in 2015 to be used for future surveys. There were ~215 streams
-#originally surveyed between 1963-2014, but Steve did not include all of these here.
-#In the future: recreate district-wide adjusted-AUC estimates from the original raw 
-#data to make this exercise reproducible! To do this:
-
-
-#(1) From the complete raw aerial survey data containing all stream surveys, 
-#    only the ~134 "current" streams would be retained for the new escapement goal.
-#(2) Raw counts for individual streams flown >= 3 times would be integrated across
-#    the season using trapezoidal integration. This = area-under-the-curve (AUC).
-#(3) AUC would be adjusted for stream life. For chum salmon, an average stream life
-#    of 12.6 days is used for the entire PWS. For pink salmon, stream-specific stream
-#    life is used. AUC/stream life = adjusted-AUC
-#(4) Adjusted-AUCs of individual streams are summed within each district. But, for 
-#    pink salmon goals, districts 222 (Northern) and 229 (Unakwik) are summed together.
-# R. Brenner 6 Sept. 2016
-PWSPinkChum <- read_csv("data/PWS_Pink_Chum_EG.csv")
+pws_pink_chum <- read_csv("data/PWS_Pink_Chum_EG.csv")
 
 #adjust area-under-the-curve values for stream life
-PWSPinkChum %>%  
+pws_pink_chum %>%  
   mutate(pink_adjstd = round(Sum_P_AUC/pink_strm_life, digits =0),
-         chum_adjstd = round(Sum_C_AUC/chum_strm_life, digits=0)) -> PWSPinkChum
-glimpse(PWSPinkChum)
+         chum_adjstd = round(Sum_C_AUC/chum_strm_life, digits=0),
+  		 dist_name = case_when(district=="221" ~ "Eastern",
+  		 							 district=="222" ~ "Northern",
+  		 							 district=="223" ~ "Coghill",
+  		 							 district=="224" ~ "Northeastern",
+  		 							 district=="225" ~ "Eshamy",
+  		 							 district=="226" ~ "Southwestern",
+  		 							 district=="227" ~ "Monthague",
+  		 							 district=="228" ~ "Southeastern",
+  		 							 district=="229" ~ "Unakwik"),
+  		 dist_num_name = paste0(district,":", dist_name)) -> pws_pink_chum
 
-#add distict names
-PWSPinkChum %>%
-  mutate(dist_name) -> PWSPinkChum #add a variable called dist_name
-PWSPinkChum$dist_name[PWSPinkChum$district == "221"] <- "Eastern" #A more efficient way to change these??
-PWSPinkChum$dist_name[PWSPinkChum$district == "222"] <- "Northern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "223"] <- "Coghill"
-PWSPinkChum$dist_name[PWSPinkChum$district == "224"] <- "Northeastern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "225"] <- "Eshamy"
-PWSPinkChum$dist_name[PWSPinkChum$district == "226"] <- "Southwestern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "227"] <- "Monthague"
-PWSPinkChum$dist_name[PWSPinkChum$district == "228"] <- "Southeastern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
+# Pink ----
+# For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
+pws_pink_chum %>%  
+  	mutate(district = ifelse(district == 229, 222, district)) %>% 
+  	group_by(year, broodline, district) %>% 
+  	filter(broodline == "Even") %>%
+  	summarize(pink_dist = sum(pink_adjstd), n = n()) -> pink_even
+   
+pws_pink_chum %>%  
+  	mutate(district = ifelse(district == 229, 222, district)) %>% 
+  	group_by(year, broodline, district) %>% 
+  	filter(broodline == "Odd")%>%
+  	summarize(pink_dist = sum(pink_adjstd), n = n()) -> pink_odd                                                              
 
-#combine district and dist_names for graphing purposes (for facet labels)
-PWSPinkChum %>% 
-  mutate(dist_num_name) -> PWSPinkChum
-PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_name, sep = ": ")
+# pink quantiles ----
+# calculate 20th and 60th percentiles for EVEN year pink salmon for each district
+# for proposed spawning escapement goals
 
-
-
-#For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
-  PWSPinkChum %>%   
-  mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
-                                                                  #PINK analyses only!
-
-  
-#Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
-district_pink_even <- out %>% 
-  group_by(year, broodline, district) %>% 
-  filter(broodline == "Even")%>%
-  summarize(pink_dist = sum(pink_adjstd), #sums each year x broodline x district combination
-            n = n() #counts the number of streams surveyed per district
-  )  
-glimpse(district_pink_even)
-
-
-#Summarize odd-year pink stocks by district. Note that 229 and 222 have already been combined
-district_pink_odd <- out %>% 
-  group_by(year, broodline, district) %>% 
-  filter(broodline == "Odd")%>%
-  summarize(pink_dist = sum(pink_adjstd),
-            n = n() #counts the number of streams surveyed per district
-)
-glimpse(district_pink_odd)
-
-
-######################################################################################
-#calculate 20th and 60th percentiles for EVEN year pink salmon for each district
-#for proposed spawning escapement goals
-probs <- c(0.20, 0.60)
-even_pink_quantiles <- district_pink_even %>%
+pink_even %>%
   filter(year >"1980") %>%  #Only includes years from 1982-present
   group_by(district) %>%  
-  summarize(p = list(probs), q = list(quantile(pink_dist, probs))) %>%
-  unnest()
-glimpse(even_pink_quantiles)
-even_pink_quantiles
+  summarize(p = list(c(0.20, 0.60)), q = list(quantile(pink_dist, probs))) %>%
+  unnest() -> pink_even_quantiles
 
-#upper quantiles....use this for the figures
-up_pink_even <- even_pink_quantiles %>%
-  filter(p == .6)
+# calculate 25th and 75th percentiles for ODD year pink salmon for each district
+# for proposed spawning escapement goals
 
-low_pink_even <- even_pink_quantiles %>%
-  filter(p== .2)
-
-
-#######################################################################################
-#calculate 25th and 75th percentiles for ODD year pink salmon for each district
-#for proposed spawning escapement goals
-probs <- c(0.25, 0.75)
-odd_pink_quantiles <- district_pink_odd %>%
+pink_odd %>%
   filter(year >"1979") %>%  #Only includes years from 1981-present, but not 2016
   group_by(district) %>%  
-  summarize(p = list(probs), q = list(quantile(pink_dist, probs))) %>%
-  unnest()
-glimpse(odd_pink_quantiles)
-odd_pink_quantiles
+  summarize(p = list(c(0.25, 0.75)), q = list(quantile(pink_dist, probs))) %>%
+  unnest() -> odd_pink_quantiles
 
 #upper quantiles....use this for the figures
 up_pink_odd <- odd_pink_quantiles %>%
@@ -123,31 +79,56 @@ up_pink_odd <- odd_pink_quantiles %>%
 low_pink_odd <- odd_pink_quantiles %>%
   filter(p== .25)
 
-########################################################################################
-#Summarize CHUM harvests across districts for each year, we can drop broodlines
-district_chum_sum <- PWSPinkChum %>%  
+
+# Figure of PINK salmon escapments and proposed goals
+# Proposed goal for EVEN year pink salmon
+
+pink_even_quantiles
+
+
+pink_even %>% 
+	ggplot(aes(year, pink_dist)) + 
+	geom_point() +
+	labs(x = "Years", y = "Escapement") +
+	geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005) + #shade years w/ too few surveys
+	geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005) + #shade years w/ too few surveys
+	geom_hline(data=filter(pink_even_quantiles, p==0.75), aes(yintercept = q)) + #add upper line for  escapement goal
+	geom_hline(data=low_pink_even, aes(yintercept = q))+#add lower line for escapement goal
+	facet_wrap(~ district, labeller = label_both, ncol = 2, scales = "free_y")
+p_even
+
+
+#Proposed goal for ODD year pink salmon
+p_odd <- ggplot(data = district_pink_odd) +
+	geom_point(mapping = aes(x = year, y = pink_dist)) +
+	labs(x = "Years", y = "Escapement") +
+	geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005) + #shade years w/ too few surveys
+	geom_hline(data=up_pink_odd, aes(yintercept = q))+ #add upper line for  escapement goal
+	geom_hline(data=low_pink_odd, aes(yintercept = q))+#add lower line for escapement goal
+	facet_wrap(~ district, ncol = 2, scales = "free_y")
+p_odd
+
+
+# Chum ----
+# Summarize chum harvests across districts for each year, we can drop broodlines
+pws_pink_chum %>%  
   filter(district != "225", district !="226", district !="227", # Only districts of interest
-         district != "229")%>%
+         district != "229") %>%
   group_by(year, district, dist_num_name) %>%
   summarize(chum_dist = sum(chum_adjstd, na.rm = TRUE),
-            n = n()#counts the number of streams per district
-) 
-glimpse(district_chum_sum)
+            n = n()) -> chum_sum
 
 
-#######################################################################################
-#calculate 20th and 60th percentiles for chum salmon for each chum district
-#for proposed spawning escapement goals
+
+# quantiles ----
+# calculate 20th and 60th percentiles for chum salmon for each chum district
+# for proposed spawning escapement goals
 probs <- c(0.20, 0.60)
-chum_quantiles <- district_chum_sum %>%
+chum_sum %>%
   filter(year >"1979", year != "2016") %>%  #Only includes years from 1980-present, but not 2016
   group_by(district, dist_num_name) %>%  
   summarize(p = list(probs), q = list(quantile(chum_dist, probs))) %>%
-  unnest()
-glimpse(chum_quantiles)
-chum_quantiles
-
-
+  unnest() -> chum_quantiles
 
 #upper and lower quantiles for individual districts....for geom_hlines....maybe
 #upper quantiles
@@ -160,15 +141,9 @@ lower_chum <- chum_quantiles %>%
 lower_chum
 
 
-######################################################################################
-#f_labels <- data.frame(district = c("221", "222", "223", "224", "228"), 
-                     # label = c("Eastern", "Northern","Coghill", "Northwestern", "Southeastern"))
-
-
-#FIGURES
+# Figures ----
 #Figure of CHUM salmon escapements and proposed goals
-c <- ggplot (data = district_chum_sum) +
-  theme_bw() +
+ggplot (data = district_chum_sum) +
   geom_point(mapping = aes(x = year, y = chum_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
@@ -177,17 +152,10 @@ c <- ggplot (data = district_chum_sum) +
   geom_hline(data=lower_chum, aes(yintercept = q))+ #add lower line for escapement goal
   facet_wrap(~ district, labeller= label_both, ncol=2, scales = "free_y")+
 ggsave("figures/C.png", dpi=400, width=8, height=5, units='in')
-c
-
-
-
-
-
 
 #Figure of PINK salmon escapments and proposed goals
 #Proposed goal for EVEN year pink salmon
 p_even <- ggplot (data = district_pink_even) +
-  theme_bw()+
   geom_point(mapping = aes(x = year, y = pink_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1964, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
@@ -200,7 +168,6 @@ p_even
 
 #Proposed goal for ODD year pink salmon
 p_odd <- ggplot(data = district_pink_odd) +
-  theme_bw()+
   geom_point(mapping = aes(x = year, y = pink_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005) + #shade years w/ too few surveys
@@ -223,34 +190,30 @@ c_harvest
 #surveyed (0.80). Estimates are from Fried et al., Fish and Shellfish Study I (EVOS)
 #and based on pink salmon!
 c_harvest %>% 
-  mutate(max_harv = Harvest/(Harvest+adjusted_AUC)*100) %>%
-  mutate(min_harv = Harvest/((adjusted_AUC/0.436/.80)+Harvest)*100) %>%
-  mutate(min_run = Harvest + adjusted_AUC) %>%
-  mutate(max_run = Harvest + (adjusted_AUC/0.436/0.80)) -> c_harvest
+  mutate(max_harv = Harvest/(Harvest+adjusted_AUC)*100,
+  		 min_harv = Harvest/((adjusted_AUC/0.436/.80)+Harvest)*100,
+  		 min_run = Harvest + adjusted_AUC,
+  		 max_run = Harvest + (adjusted_AUC/0.436/0.80)) -> c_harvest
 
 #Plot of maximum and minimum harvest rates for PWS wild chum salmon
 chum_perc_harv <- ggplot(data = c_harvest)+
-  theme_bw()+
-  geom_line(mapping = aes(x = Year, y = max_harv))+
-  geom_line(mapping = aes(x = Year, y = min_harv))+
+  geom_line(mapping = aes(Year, max_harv))+
+  geom_line(mapping = aes(Year,  min_harv))+
   labs(x = "Years", y = "% Harvest")
 chum_perc_harv
 
 #Estimated number of wild chum harvested in PWS
 chum_harv <- ggplot(data = c_harvest)+
-  theme_bw()+
   geom_line(mapping = aes(x = Year, y = Harvest))+
   labs(x = "Years", y = "Harvest")
 chum_harv
 
 chum_total_max <- ggplot(data = c_harvest)+
-  theme_bw()+
   geom_line(mapping = aes(x = Year, y = max_run))+
   labs(x = "Years", y = "Total Run Size")
 chum_total_max
 
 chum_total_min <- ggplot(data = c_harvest)+
-  theme_bw()+
   geom_line(mapping = aes(x = Year, y = min_run))+
   labs(x = "Years", y = "Total Run Size")
 chum_total_min
