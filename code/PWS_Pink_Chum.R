@@ -34,13 +34,13 @@ PWSPinkChum <- read_csv("data/PWS_Pink_Chum_EG.csv")
 
 #adjust area-under-the-curve values for stream life
 PWSPinkChum %>%  
-  mutate(pink_adjstd = round(Sum_P_AUC/pink_strm_life, digits =0),
-         chum_adjstd = round(Sum_C_AUC/chum_strm_life, digits=0)) -> PWSPinkChum
+  mutate(pink_adjstd = round(Sum_P_AUC/pink_strm_life, digits = 0),
+         chum_adjstd = round(Sum_C_AUC/chum_strm_life, digits = 0)) -> PWSPinkChum
 glimpse(PWSPinkChum)
 
 #add distict names
-PWSPinkChum %>%
-  mutate(dist_name) -> PWSPinkChum #add a variable called dist_name
+#PWSPinkChum %>%
+ # mutate(dist_name == "" )-> PWSPinkChum #add a variable called dist_name
 PWSPinkChum$dist_name[PWSPinkChum$district == "221"] <- "Eastern" #A more efficient way to change these??
 PWSPinkChum$dist_name[PWSPinkChum$district == "222"] <- "Northern"
 PWSPinkChum$dist_name[PWSPinkChum$district == "223"] <- "Coghill"
@@ -52,8 +52,8 @@ PWSPinkChum$dist_name[PWSPinkChum$district == "228"] <- "Southeastern"
 PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
 
 #combine district and dist_names for graphing purposes (for facet labels)
-PWSPinkChum %>% 
-  mutate(dist_num_name) -> PWSPinkChum
+#PWSPinkChum %>% 
+  #mutate(dist_num_name) -> PWSPinkChum
 PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_name, sep = ": ")
 
 
@@ -61,7 +61,8 @@ PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_
 #For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
   PWSPinkChum %>%   
   mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
-                                                                  #PINK analyses only!
+                                                                  #PINK analyses only! Used
+                                                                  #to separate odd vs even yrs.
 
   
 #Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
@@ -89,7 +90,7 @@ glimpse(district_pink_odd)
 #for proposed spawning escapement goals
 probs <- c(0.20, 0.60)
 even_pink_quantiles <- district_pink_even %>%
-  filter(year >"1980") %>%  #Only includes years from 1982-present
+  filter(year >"1980", year != 2016) %>%  #Only includes years from 1982-present, but NOT 2016
   group_by(district) %>%  
   summarize(p = list(probs), q = list(quantile(pink_dist, probs))) %>%
   unnest()
@@ -180,10 +181,6 @@ ggsave("figures/C.png", dpi=400, width=8, height=5, units='in')
 c
 
 
-
-
-
-
 #Figure of PINK salmon escapments and proposed goals
 #Proposed goal for EVEN year pink salmon
 p_even <- ggplot (data = district_pink_even) +
@@ -191,10 +188,11 @@ p_even <- ggplot (data = district_pink_even) +
   geom_point(mapping = aes(x = year, y = pink_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1964, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
-  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
   geom_hline(data=up_pink_even, aes(yintercept = q))+ #add upper line for  escapement goal
   geom_hline(data=low_pink_even, aes(yintercept = q))+#add lower line for escapement goal
   facet_wrap(~ district, labeller = label_both, ncol = 2, scales = "free_y")
+ggsave("figures/p_even.png", dpi=400, width=8, height=5, units='in')
 p_even
 
 
@@ -207,6 +205,7 @@ p_odd <- ggplot(data = district_pink_odd) +
   geom_hline(data=up_pink_odd, aes(yintercept = q))+ #add upper line for  escapement goal
   geom_hline(data=low_pink_odd, aes(yintercept = q))+#add lower line for escapement goal
   facet_wrap(~ district, ncol = 2, scales = "free_y")
+ggsave("figures/p_odd.png", dpi=400, width=8, height=5, units='in')
 p_odd
 
 
@@ -215,7 +214,7 @@ p_odd
 c_harvest<- read_csv("data/Chum_Harvest_Rate.csv")
 c_harvest
 
-#Create variables for possible maximum and minimum harvests
+#Estimate maximum and minimum harvests for PWS chum salmon
 #adjusted_AUC is from the ~214 area index streams, not the reduced stream count of 134 streams
 #maximum harvest estimate from area-under-the-curve (AUC) adjusted for stream life.
 #minimum harvest estimate expands adjusted_AUC escapement estimate to account for observer
@@ -227,40 +226,168 @@ c_harvest %>%
   mutate(min_harv = Harvest/((adjusted_AUC/0.436/.80)+Harvest)*100) %>%
   mutate(min_run = Harvest + adjusted_AUC) %>%
   mutate(max_run = Harvest + (adjusted_AUC/0.436/0.80)) -> c_harvest
+write_csv(c_harvest, "data/c_harvest.csv")
 
 #Plot of maximum and minimum harvest rates for PWS wild chum salmon
 chum_perc_harv <- ggplot(data = c_harvest)+
   theme_bw()+
-  geom_line(mapping = aes(x = Year, y = max_harv))+
-  geom_line(mapping = aes(x = Year, y = min_harv))+
-  labs(x = "Years", y = "% Harvest")
+  geom_line(aes(x = Year, y = max_harv))+
+  geom_line(linetype = "dashed", aes(x = Year, y = min_harv))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "% \n Harvest")
 chum_perc_harv
+ggsave("figures/chum_perc_harv.png", dpi=400, width=5, height=4, units='in')
 
 #Estimated number of wild chum harvested in PWS
 chum_harv <- ggplot(data = c_harvest)+
   theme_bw()+
-  geom_line(mapping = aes(x = Year, y = Harvest))+
-  labs(x = "Years", y = "Harvest")
+  geom_line(aes(x = Year, y = Harvest/1000))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "Harvest (1000s)")
 chum_harv
 
-chum_total_max <- ggplot(data = c_harvest)+
+chum_total <- ggplot(data = c_harvest)+
   theme_bw()+
-  geom_line(mapping = aes(x = Year, y = max_run))+
-  labs(x = "Years", y = "Total Run Size")
-chum_total_max
-
-chum_total_min <- ggplot(data = c_harvest)+
-  theme_bw()+
-  geom_line(mapping = aes(x = Year, y = min_run))+
-  labs(x = "Years", y = "Total Run Size")
-chum_total_min
+  geom_line(aes(x = Year, y = max_run/1000))+
+  geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "Total Run Size (1000s)")
+chum_total
 
 
 #Wrap the 3 figures above into a singe figure 1 column???
-facet_wrap(c(chum_))
+source("http://peterhaschke.com/Code/multiplot.R") #Is multiplot in any package??
+chum_all <- multiplot(chum_harv, chum_total,chum_perc_harv,  cols = 1)
+  save.image("figures/chum_all.png", dpi=400, width=8, height=5, units='in')##won't save the entire multiplot???
+
+########################################################################
+
+  ##############################################################
+#PRead Harvest date obtained from the 2017 PWS wild PINK salmon forecast spreadsheet
+p_harvest<- read_csv("data/Pink_Harvest_Rate.csv")
+p_harvest
+
+p_harvest -> out
+
+#First, separate even- and odd- broodlines
+#Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
+p_harvest_even <- out %>% 
+  group_by(Year, broodline, adjusted_AUC) %>% 
+  filter(broodline == "Even")%>%
+  group_by(Year,adjusted_AUC)
+glimpse(p_harvest_even)
 
 
 
 
+#Summarize odd-year pink stocks by district. Note that 229 and 222 have already been combined
+p_harvest_odd <- out %>% 
+  group_by(Year, broodline, adjusted_AUC) %>% 
+  filter(broodline == "Odd")%>%
+  group_by(Year,adjusted_AUC)
+glimpse(p_harvest_odd)
+  
+#Estimate maximum and minimum harvests for PWS even- and odd-pink salmon stocks
+#adjusted_AUC is from the ~214 area index streams, not the reduced stream count of 134 streams
+#maximum harvest estimate from area-under-the-curve (AUC) adjusted for stream life.
+#minimum harvest estimate expands adjusted_AUC escapement estimate to account for observer
+#efficiency of 0.436 and the proportion of overall escapement represented by the ~214 streams
+#surveyed (0.80). Estimates are from Fried et al., Fish and Shellfish Study I (EVOS)
+#and based on pink salmon!
+p_harvest_even %>% 
+    mutate(max_harv = Harvest/(Harvest+adjusted_AUC)*100) %>%
+    mutate(min_harv = Harvest/((adjusted_AUC/0.436/.80)+Harvest)*100) %>%
+    mutate(min_run = Harvest + adjusted_AUC) %>%
+    mutate(max_run = Harvest + (adjusted_AUC/0.436/0.80)) -> p_harvest_even
+  write_csv(p_harvest_even, "data/p_harvest_even.csv")
+  
+p_harvest_odd %>% 
+    mutate(max_harv = Harvest/(Harvest+adjusted_AUC)*100) %>%
+    mutate(min_harv = Harvest/((adjusted_AUC/0.436/.80)+Harvest)*100) %>%
+    mutate(min_run = Harvest + adjusted_AUC) %>%
+    mutate(max_run = Harvest + (adjusted_AUC/0.436/0.80)) -> p_harvest_odd
+write_csv(p_harvest_odd, "data/p_harvest_odd.csv")
+  
+  
+  
+  
+#Plot of maximum and minimum harvest rates for PWS wild pink salmon: EVEN
+pink_perc_harv_even <- ggplot(data = p_harvest_even)+
+  theme_bw()+
+  geom_line(aes(x = Year, y = max_harv))+
+  geom_line(linetype = "dashed", aes(x = Year, y = min_harv))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "% \n Harvest")
+pink_perc_harv_even
+ggsave("figures/pink_perc_harv_even.png", dpi=400, width=5, height=4, units='in')
+  
+#Plot of maximum and minimum harvest rates for PWS wild pink salmon: ODD
+pink_perc_harv_odd <- ggplot(data = p_harvest_odd)+
+  theme_bw()+
+  geom_line(aes(x = Year, y = max_harv))+
+  geom_line(linetype = "dashed", aes(x = Year, y = min_harv))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "% \n Harvest")
+pink_perc_harv_odd
+ggsave("figures/pink_perc_harv_odd.png", dpi=400, width=5, height=4, units='in')
 
+
+
+
+#Estimated number of wild pink harvested in PWS: EVEN
+pink_harv_even <- ggplot(data = p_harvest_even)+
+    theme_bw()+
+    geom_line(aes(x = Year, y = Harvest/1000))+
+    geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+    geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+    labs(x = "Years", y = "Harvest (1000s)")
+pink_harv_even
+
+#Estimated number of wild pink harvested in PWS: ODD
+pink_harv_odd <- ggplot(data = p_harvest_odd)+
+  theme_bw()+
+  geom_line(aes(x = Year, y = Harvest/1000))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "Harvest (1000s)")
+pink_harv_odd
+
+
+#Estimated total run size of wild pink salmon in PWS: EVEN
+pink_total_even <- ggplot(data = p_harvest_even)+
+    theme_bw()+
+    geom_line(aes(x = Year, y = max_run/1000))+
+    geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
+    geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+    geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+    labs(x = "Years", y = "Total Run Size (1000s)")
+pink_total_even
+  
+#Estimated total run size of wild pink salmon in PWS: ODD
+pink_total_odd <- ggplot(data = p_harvest_odd)+
+  theme_bw()+
+  geom_line(aes(x = Year, y = max_run/1000))+
+  geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
+  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  labs(x = "Years", y = "Total Run Size (1000s)")
+pink_total_odd
+
+
+  
+#Wrap the 3 figures for pink even year runs above into a single figure, 1 column
+source("http://peterhaschke.com/Code/multiplot.R") #Is multiplot in any package??
+pink_even_all <- multiplot(pink_harv_even, pink_total_even, pink_perc_harv_even,  cols = 1)
+save.image("figures/pink_even_all.png", dpi=400, width=8, height=5, units='in')##won't save the entire multiplot???
+  
+  
+#Wrap the 3 figures for pink even year runs above into a single figure, 1 column
+source("http://peterhaschke.com/Code/multiplot.R") #Is multiplot in any package??
+pink_odd_all <- multiplot(pink_harv_odd, pink_total_odd, pink_perc_harv_odd,  cols = 1)
+save.image("figures/pink_even_all.png", dpi=400, width=8, height=5, units='in')##won't save the entire multiplot???
 
