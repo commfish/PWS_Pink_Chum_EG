@@ -270,13 +270,13 @@ chum_all <- multiplot(chum_harv, chum_total,chum_perc_harv,  cols = 1)
 p_harvest<- read_csv("data/Pink_Harvest_Rate.csv")
 p_harvest
 
-p_harvest -> out
+p_harvest -> out  #the out file is only used to separate broodlines
 
 #First, separate even- and odd- broodlines
 #Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
 p_harvest_even <- out %>% 
   group_by(Year, broodline, adjusted_AUC) %>% 
-  filter(broodline == "Even")%>%
+  filter(broodline == "Even", Year > "1962")%>%
   group_by(Year,adjusted_AUC)
 glimpse(p_harvest_even)
 
@@ -286,7 +286,7 @@ glimpse(p_harvest_even)
 #Summarize odd-year pink stocks by district. Note that 229 and 222 have already been combined
 p_harvest_odd <- out %>% 
   group_by(Year, broodline, adjusted_AUC) %>% 
-  filter(broodline == "Odd")%>%
+  filter(broodline == "Odd", Year > "1962")%>%
   group_by(Year,adjusted_AUC)
 glimpse(p_harvest_odd)
   
@@ -310,8 +310,7 @@ p_harvest_odd %>%
     mutate(min_run = Harvest + adjusted_AUC) %>%
     mutate(max_run = Harvest + (adjusted_AUC/0.436/0.80)) -> p_harvest_odd
 write_csv(p_harvest_odd, "data/p_harvest_odd.csv")
-  
-  
+
   
   
 #Plot of maximum and minimum harvest rates for PWS wild pink salmon: EVEN
@@ -319,7 +318,7 @@ pink_perc_harv_even <- ggplot(data = p_harvest_even)+
   theme_bw()+
   geom_line(aes(x = Year, y = max_harv))+
   geom_line(linetype = "dashed", aes(x = Year, y = min_harv))+
-  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
   geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
   labs(x = "Years", y = "% \n Harvest")
 pink_perc_harv_even
@@ -330,8 +329,8 @@ pink_perc_harv_odd <- ggplot(data = p_harvest_odd)+
   theme_bw()+
   geom_line(aes(x = Year, y = max_harv))+
   geom_line(linetype = "dashed", aes(x = Year, y = min_harv))+
-  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
-  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
+  #geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
   labs(x = "Years", y = "% \n Harvest")
 pink_perc_harv_odd
 ggsave("figures/pink_perc_harv_odd.png", dpi=400, width=5, height=4, units='in')
@@ -343,7 +342,7 @@ ggsave("figures/pink_perc_harv_odd.png", dpi=400, width=5, height=4, units='in')
 pink_harv_even <- ggplot(data = p_harvest_even)+
     theme_bw()+
     geom_line(aes(x = Year, y = Harvest/1000))+
-    geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+    geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
     geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
     labs(x = "Years", y = "Harvest (1000s)")
 pink_harv_even
@@ -352,8 +351,8 @@ pink_harv_even
 pink_harv_odd <- ggplot(data = p_harvest_odd)+
   theme_bw()+
   geom_line(aes(x = Year, y = Harvest/1000))+
-  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
-  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  #geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
   labs(x = "Years", y = "Harvest (1000s)")
 pink_harv_odd
 
@@ -363,7 +362,7 @@ pink_total_even <- ggplot(data = p_harvest_even)+
     theme_bw()+
     geom_line(aes(x = Year, y = max_run/1000))+
     geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
-    geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+    geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
     geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
     labs(x = "Years", y = "Total Run Size (1000s)")
 pink_total_even
@@ -373,13 +372,12 @@ pink_total_odd <- ggplot(data = p_harvest_odd)+
   theme_bw()+
   geom_line(aes(x = Year, y = max_run/1000))+
   geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
-  geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
-  geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
+  #geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
   labs(x = "Years", y = "Total Run Size (1000s)")
 pink_total_odd
 
 
-  
 #Wrap the 3 figures for pink even year runs above into a single figure, 1 column
 source("http://peterhaschke.com/Code/multiplot.R") #Is multiplot in any package??
 pink_even_all <- multiplot(pink_harv_even, pink_total_even, pink_perc_harv_even,  cols = 1)
@@ -389,5 +387,7 @@ save.image("figures/pink_even_all.png", dpi=400, width=8, height=5, units='in')#
 #Wrap the 3 figures for pink even year runs above into a single figure, 1 column
 source("http://peterhaschke.com/Code/multiplot.R") #Is multiplot in any package??
 pink_odd_all <- multiplot(pink_harv_odd, pink_total_odd, pink_perc_harv_odd,  cols = 1)
-save.image("figures/pink_even_all.png", dpi=400, width=8, height=5, units='in')##won't save the entire multiplot???
+#png(filename = "figures/pink_even_all.png", pointsize =12, bg = "white", res = NA, restoreConsole = TRUE)
+dev.off
+
 
