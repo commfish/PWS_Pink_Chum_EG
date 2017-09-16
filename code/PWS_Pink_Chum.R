@@ -16,7 +16,7 @@ options(scipen=9999)
 #These data have already been subsetted to only include the ~134 streams
 #determined in 2015 to be used for future surveys. There were ~215 streams
 #originally surveyed between 1963-2014, but Steve did not include all of these here.
-#In the future: recreate district-wide adjusted-AUC estimates from the original raw 
+#In the future: recreate district-wide adjusted-AUC estimates from the original raw  
 #data to make this exercise reproducible! To do this:
 
 
@@ -388,6 +388,5 @@ save.image("figures/pink_even_all.png", dpi=400, width=8, height=5, units='in')#
 source("http://peterhaschke.com/Code/multiplot.R") #Is multiplot in any package??
 pink_odd_all <- multiplot(pink_harv_odd, pink_total_odd, pink_perc_harv_odd,  cols = 1)
 #png(filename = "figures/pink_even_all.png", pointsize =12, bg = "white", res = NA, restoreConsole = TRUE)
-dev.off
 
 
