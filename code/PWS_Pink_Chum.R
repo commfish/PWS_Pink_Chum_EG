@@ -191,6 +191,8 @@ lower_chum
 #f_labels <- data.frame(district = c("221", "222", "223", "224", "228"), 
                      #label = c("Eastern", "Northern","Coghill", "Northwestern", "Southeastern"))
 
+to_string <- as_labeller(c('221' = "Eastern", '222' = "Northern", '223' = "Coghill", '224'= "Northwestern",
+                           '228' = "Southeastern"))
 
 #Figure of CHUM salmon escapements and proposed goals
 c <- ggplot (data = district_chum_sum) +
