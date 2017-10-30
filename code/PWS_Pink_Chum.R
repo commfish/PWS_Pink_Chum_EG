@@ -39,8 +39,8 @@ PWSPinkChum %>%
 glimpse(PWSPinkChum)
 
 #add distict names
-#PWSPinkChum %>%
- # mutate(dist_name == "" )-> PWSPinkChum #add a variable called dist_name
+PWSPinkChum %>%
+ mutate(dist_name == "" )-> PWSPinkChum #add a variable called dist_name
 PWSPinkChum$dist_name[PWSPinkChum$district == "221"] <- "Eastern" #A more efficient way to change these??
 PWSPinkChum$dist_name[PWSPinkChum$district == "222"] <- "Northern"
 PWSPinkChum$dist_name[PWSPinkChum$district == "223"] <- "Coghill"
@@ -52,9 +52,9 @@ PWSPinkChum$dist_name[PWSPinkChum$district == "228"] <- "Southeastern"
 PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
 
 #combine district and dist_names for graphing purposes (for facet labels)
-#PWSPinkChum %>% 
-  #mutate(dist_num_name) -> PWSPinkChum
-PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_name, sep = ": ")
+PWSPinkChum %>% 
+  mutate(dist_num_name) -> PWSPinkChum
+PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_name, sep = "_")
 
 
 
@@ -63,11 +63,27 @@ PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_
   mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
                                                                   #PINK analyses only! Used
                                                                   #to separate odd vs even yrs.
-
+                                                                  #below
+  
+  
+  #For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
+  out %>%   
+    mutate(dist_num_name = ifelse(dist_num_name = "229_Unakwik", "222_Northern", dist_num_name)) -> out #'out' is a temporary file for
+  #PINK analyses only! Used
+  #to separate odd vs even yrs.
+  #below
+  
+  out %>%   
+    mutate(dist_name = ifelse(dist_name == "Unakwik", "Northern", dist_name)) -> out #'out' is a temporary file for
+  #PINK analyses only! Used
+  #to separate odd vs even yrs.
+  #below
+  
+  
   
 #Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
 district_pink_even <- out %>% 
-  group_by(year, broodline, district) %>% 
+  group_by(year, broodline, district, ) %>% 
   filter(broodline == "Even")%>%
   summarize(pink_dist = sum(pink_adjstd), #sums each year x broodline x district combination
             n = n() #counts the number of streams surveyed per district
