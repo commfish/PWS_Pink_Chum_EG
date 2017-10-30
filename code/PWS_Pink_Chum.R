@@ -188,11 +188,12 @@ lower_chum
 
 ######################################################################################
 #FIGURES
-#f_labels <- data.frame(district = c("221", "222", "223", "224", "228"), 
-                     #label = c("Eastern", "Northern","Coghill", "Northwestern", "Southeastern"))
-
-to_string <- as_labeller(c('221' = "Eastern", '222' = "Northern", '223' = "Coghill", '224'= "Northwestern",
-                           '228' = "Southeastern"))
+#The following "coerces" objects to a labeller function to be used in the ggplot: 
+chum_string <- as_labeller(c('221' = "Eastern (221)", 
+                             '222' = "Northern (222)", 
+                             '223' = "Coghill (223)", 
+                             '224' = "Northwestern (224)",
+                             '228' = "Southeastern (228)"))
 
 #Figure of CHUM salmon escapements and proposed goals
 c <- ggplot (data = district_chum_sum) +
@@ -203,12 +204,23 @@ c <- ggplot (data = district_chum_sum) +
   geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
   geom_hline(data=upper_chum, aes(yintercept = q))+ #add upper line for  escapement goal
   geom_hline(data=lower_chum, aes(yintercept = q))+ #add lower line for escapement goal
-  facet_wrap(~ district, ncol=2, scales = "free_y")+
+  facet_wrap(~ district,  labeller = as_labeller((chum_string)), ncol=2, scales = "free_y")+
 ggsave("figures/C.png", dpi=400, width=8, height=5, units='in')
 c
 
 
 #Figure of PINK salmon escapments and proposed goals
+#First, use this to coerce the labels into a form that can be used by
+#the ggplot "labeller" function
+pink_string <- as_labeller(c('221' = "Eastern (221)", 
+                             '222' = "Northern (222)", 
+                             '223' = "Coghill (223)", 
+                             '224' = "Northwestern (224)",
+                             '225' = "Eshamy (225)",
+                             '226' = "Southwestern (226)",
+                             '227' = "Montague (227)",
+                             '228' = "Southeastern (228)"))
+
 #Proposed goal for EVEN year pink salmon
 p_even <- ggplot (data = district_pink_even) +
   theme_bw()+
@@ -218,9 +230,12 @@ p_even <- ggplot (data = district_pink_even) +
   geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
   geom_hline(data=up_pink_even, aes(yintercept = q))+ #add upper line for  escapement goal
   geom_hline(data=low_pink_even, aes(yintercept = q))+#add lower line for escapement goal
-  facet_wrap(~ district, labeller = label_both, ncol = 2, scales = "free_y")
+  facet_wrap(~ district, labeller = as_labeller((pink_string)), ncol = 2, scales = "free_y")
 ggsave("figures/p_even.png", dpi=400, width=8, height=5, units='in')
 p_even
+
+
+
 
 
 #Proposed goal for ODD year pink salmon
@@ -231,7 +246,7 @@ p_odd <- ggplot(data = district_pink_odd) +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005) + #shade years w/ too few surveys
   geom_hline(data=up_pink_odd, aes(yintercept = q))+ #add upper line for  escapement goal
   geom_hline(data=low_pink_odd, aes(yintercept = q))+#add lower line for escapement goal
-  facet_wrap(~ district, ncol = 2, scales = "free_y")
+  facet_wrap(~ district, labeller = as_labeller((pink_string)),ncol = 2, scales = "free_y")
 ggsave("figures/p_odd.png", dpi=400, width=8, height=5, units='in')
 p_odd
 
@@ -306,8 +321,6 @@ p_harvest_even <- out %>%
   filter(broodline == "Even", Year > "1962")%>%
   group_by(Year,adjusted_AUC)
 glimpse(p_harvest_even)
-
-
 
 
 #Summarize odd-year pink stocks by district. Note that 229 and 222 have already been combined
