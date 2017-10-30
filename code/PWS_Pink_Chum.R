@@ -51,39 +51,40 @@ PWSPinkChum$dist_name[PWSPinkChum$district == "227"] <- "Monthague"
 PWSPinkChum$dist_name[PWSPinkChum$district == "228"] <- "Southeastern"
 PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
 
-#combine district and dist_names for graphing purposes (for facet labels)
-PWSPinkChum %>% 
-  mutate(dist_num_name) -> PWSPinkChum
-PWSPinkChum$dist_num_name <- interaction(PWSPinkChum$district, PWSPinkChum$dist_name, sep = "_")
 
 
 
 #For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
   PWSPinkChum %>%   
-  mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
+    mutate(district = ifelse(district == 229, 222, district)) -> out #'out' is a temporary file for
                                                                   #PINK analyses only! Used
                                                                   #to separate odd vs even yrs.
                                                                   #below
   
   
-  #For pink salmon analyses, combine districts 222 and 229 by renaming 229 as 222.  
-  out %>%   
-    mutate(dist_num_name = ifelse(dist_num_name = "229_Unakwik", "222_Northern", dist_num_name)) -> out #'out' is a temporary file for
-  #PINK analyses only! Used
-  #to separate odd vs even yrs.
-  #below
-  
+  #Similar to above for pink salmon analyses, combine districts 222 and 229 by renaming Unakwik as Northern.  
   out %>%   
     mutate(dist_name = ifelse(dist_name == "Unakwik", "Northern", dist_name)) -> out #'out' is a temporary file for
   #PINK analyses only! Used
   #to separate odd vs even yrs.
+  #below 
+  
+  
+  #combine district and dist_names for graphing purposes (for facet labels)
+out$dist_num_name <- interaction(out$district, out$dist_name, sep = "_")
+  
+
+   #TRIAL:  For pink salmon analyses, combine districts 222 and 229 by renaming 229_Unakwik as 222_Northern.  
+  out %>%   
+    mutate(dist_num_name = ifelse(dist_num_name == "229_Unakwik", "222_Northern", dist_num_name)) -> out #'out' is a temporary file for
+  #PINK analyses only! Used
+  #to separate odd vs even yrs.
   #below
-  
-  
+
   
 #Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
 district_pink_even <- out %>% 
-  group_by(year, broodline, district, ) %>% 
+  group_by(year, broodline, district, dist_num_name) %>% 
   filter(broodline == "Even")%>%
   summarize(pink_dist = sum(pink_adjstd), #sums each year x broodline x district combination
             n = n() #counts the number of streams surveyed per district
@@ -93,7 +94,7 @@ glimpse(district_pink_even)
 
 #Summarize odd-year pink stocks by district. Note that 229 and 222 have already been combined
 district_pink_odd <- out %>% 
-  group_by(year, broodline, district) %>% 
+  group_by(year, broodline, district, dist_num_name) %>% 
   filter(broodline == "Odd")%>%
   summarize(pink_dist = sum(pink_adjstd),
             n = n() #counts the number of streams surveyed per district
@@ -142,10 +143,18 @@ low_pink_odd <- odd_pink_quantiles %>%
 
 ########################################################################################
 #Summarize CHUM harvests across districts for each year, we can drop broodlines
-district_chum_sum <- PWSPinkChum %>%  
+#combine district and dist_names for graphing purposes (for facet labels)
+
+chum_out <- PWSPinkChum  #creates a copy of the PWSPinkChum dataset to be used for chum analyses
+
+#adds a field called "district_num_name"
+chum_out$dist_num_name <- interaction(chum_out$district, chum_out$dist_name, sep = "_")
+
+#summarizes the chum data, removes unwanted districts, and removes NAs
+district_chum_sum <- chum_out %>%  
   filter(district != "225", district !="226", district !="227", # Only districts of interest
          district != "229")%>%
-  group_by(year, district, dist_num_name) %>%
+  group_by(year, district, dist_num_name, dist_name) %>%
   summarize(chum_dist = sum(chum_adjstd, na.rm = TRUE),
             n = n()#counts the number of streams per district
 ) 
@@ -153,7 +162,7 @@ glimpse(district_chum_sum)
 
 
 #######################################################################################
-#calculate 20th and 60th percentiles for chum salmon for each chum district
+#calculate 20th and 60th percentiles for CHUMsalmon for each chum district
 #for proposed spawning escapement goals
 probs <- c(0.20, 0.60)
 chum_quantiles <- district_chum_sum %>%
@@ -178,11 +187,11 @@ lower_chum
 
 
 ######################################################################################
-#f_labels <- data.frame(district = c("221", "222", "223", "224", "228"), 
-                     # label = c("Eastern", "Northern","Coghill", "Northwestern", "Southeastern"))
-
-
 #FIGURES
+#f_labels <- data.frame(district = c("221", "222", "223", "224", "228"), 
+                     #label = c("Eastern", "Northern","Coghill", "Northwestern", "Southeastern"))
+
+
 #Figure of CHUM salmon escapements and proposed goals
 c <- ggplot (data = district_chum_sum) +
   theme_bw() +
@@ -192,7 +201,7 @@ c <- ggplot (data = district_chum_sum) +
   geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
   geom_hline(data=upper_chum, aes(yintercept = q))+ #add upper line for  escapement goal
   geom_hline(data=lower_chum, aes(yintercept = q))+ #add lower line for escapement goal
-  facet_wrap(~ district, labeller= label_both, ncol=2, scales = "free_y")+
+  facet_wrap(~ district, ncol=2, scales = "free_y")+
 ggsave("figures/C.png", dpi=400, width=8, height=5, units='in')
 c
 
