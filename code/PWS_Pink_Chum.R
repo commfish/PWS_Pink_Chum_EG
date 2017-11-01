@@ -74,12 +74,10 @@ PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
 out$dist_num_name <- interaction(out$district, out$dist_name, sep = "_")
   
 
-   #TRIAL:  For pink salmon analyses, combine districts 222 and 229 by renaming 229_Unakwik as 222_Northern.  
+   #For pink salmon analyses, combine districts 222 and 229 by renaming 229_Unakwik as 222_Northern.  
   out %>%   
     mutate(dist_num_name = ifelse(dist_num_name == "229_Unakwik", "222_Northern", dist_num_name)) -> out #'out' is a temporary file for
-  #PINK analyses only! Used
-  #to separate odd vs even yrs.
-  #below
+  #PINK analyses only! Used to separate odd vs even yrs.below
 
   
 #Summarize even-year pink stocks by district. Note that 229 and 222 have already been combined
@@ -104,7 +102,16 @@ glimpse(district_pink_odd)
 
 ######################################################################################
 #calculate 20th and 60th percentiles for EVEN year pink salmon for each district
-#for proposed spawning escapement goals
+#for proposed spawning escapement goals.
+#In general, years were generally excluded from the calculation of percentiles and % harvest 
+#if area-under-the-curve estimates could not be obtained for more than 70% of the aerial index 
+#streams for one or more districts. This meant excluding 1964-1980 and 2016 from the even-year 
+#pink salmon goals, excluding 1963-1979 from the odd-year pink salmon goals, and excluding 
+#1963-1980 and 2016 from the chum salmon escapement goals. Future analyses could use 
+#Bayesian methods to reconstruct escapements during years that 
+#were excluded from these estimates (I hope so).
+
+
 probs <- c(0.20, 0.60)
 even_pink_quantiles <- district_pink_even %>%
   filter(year >"1980", year != 2016) %>%  #Only includes years from 1982-present, but NOT 2016
@@ -174,7 +181,6 @@ glimpse(chum_quantiles)
 chum_quantiles
 
 
-
 #upper and lower quantiles for individual districts....for geom_hlines....maybe
 #upper quantiles
 upper_chum <- chum_quantiles %>%
@@ -196,22 +202,22 @@ chum_string <- as_labeller(c('221' = "Eastern (221)",
                              '228' = "Southeastern (228)"))
 
 #Figure of CHUM salmon escapements and proposed goals
-c <- ggplot (data = district_chum_sum) +
+chum_goals <- ggplot (data = district_chum_sum) +
   theme_bw() +
   geom_point(mapping = aes(x = year, y = chum_dist)) +
   labs(x = "Years", y = "Escapement") +
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
   geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=400000, alpha = .005)+ #shade years w/ too few surveys
-  geom_hline(data=upper_chum, aes(yintercept = q))+ #add upper line for  escapement goal
-  geom_hline(data=lower_chum, aes(yintercept = q))+ #add lower line for escapement goal
+  #geom_hline(data=upper_chum, aes(yintercept = q))+ #add upper bound for  escapement goal
+  geom_hline(data=lower_chum, aes(yintercept = q))+ #add lower bound for escapement goal
   facet_wrap(~ district,  labeller = as_labeller((chum_string)), ncol=2, scales = "free_y")+
-ggsave("figures/C.png", dpi=400, width=8, height=5, units='in')
-c
+ggsave("figures/chum_goals.png", dpi=400, width=8, height=5, units='in')
+chum_goals
 
 
 #Figure of PINK salmon escapments and proposed goals
-#First, use this to coerce the labels into a form that can be used by
-#the ggplot "labeller" function
+#First, use as_labeller to coerce the labels into a form that can be used by
+#the ggplot "labeller" functin within the facet_wrap
 pink_string <- as_labeller(c('221' = "Eastern (221)", 
                              '222' = "Northern (222)", 
                              '223' = "Coghill (223)", 
@@ -281,6 +287,7 @@ chum_perc_harv <- ggplot(data = c_harvest)+
 chum_perc_harv
 ggsave("figures/chum_perc_harv.png", dpi=400, width=5, height=4, units='in')
 
+
 #Estimated number of wild chum harvested in PWS
 chum_harv <- ggplot(data = c_harvest)+
   theme_bw()+
@@ -296,7 +303,7 @@ chum_total <- ggplot(data = c_harvest)+
   geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
   geom_rect(xmin=1963, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
   geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
-  labs(x = "Years", y = "Total Run Size (1000s)")
+  labs(x = "Years", y = "Run Size (1000s)")
 chum_total
 
 
@@ -376,8 +383,6 @@ pink_perc_harv_odd
 ggsave("figures/pink_perc_harv_odd.png", dpi=400, width=5, height=4, units='in')
 
 
-
-
 #Estimated number of wild pink harvested in PWS: EVEN
 pink_harv_even <- ggplot(data = p_harvest_even)+
     theme_bw()+
@@ -404,7 +409,7 @@ pink_total_even <- ggplot(data = p_harvest_even)+
     geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
     geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
     geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
-    labs(x = "Years", y = "Total Run Size (1000s)")
+    labs(x = "Years", y = "Run Size (1000s)")
 pink_total_even
   
 #Estimated total run size of wild pink salmon in PWS: ODD
@@ -414,7 +419,7 @@ pink_total_odd <- ggplot(data = p_harvest_odd)+
   geom_line(linetype = "dashed", aes(x = Year, y = min_run/1000))+
   geom_rect(xmin=1960, xmax=1980, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
   #geom_rect(xmin=2015.5, xmax=2017, ymin=0, ymax=4000000, alpha = .005)+ #shade years w/ too few surveys
-  labs(x = "Years", y = "Total Run Size (1000s)")
+  labs(x = "Years", y = "Run Size (1000s)")
 pink_total_odd
 
 
