@@ -41,15 +41,15 @@ glimpse(PWSPinkChum)
 #add distict names
 PWSPinkChum %>%
  mutate(dist_name == "" )-> PWSPinkChum #add a variable called dist_name
-PWSPinkChum$dist_name[PWSPinkChum$district == "221"] <- "Eastern" #A more efficient way to change these??
-PWSPinkChum$dist_name[PWSPinkChum$district == "222"] <- "Northern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "223"] <- "Coghill"
-PWSPinkChum$dist_name[PWSPinkChum$district == "224"] <- "Northeastern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "225"] <- "Eshamy"
-PWSPinkChum$dist_name[PWSPinkChum$district == "226"] <- "Southwestern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "227"] <- "Monthague"
-PWSPinkChum$dist_name[PWSPinkChum$district == "228"] <- "Southeastern"
-PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "221"] <- "Eastern"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "222"] <- "Northern"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "223"] <- "Coghill"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "224"] <- "Northeastern"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "225"] <- "Eshamy"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "226"] <- "Southwestern"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "227"] <- "Monthague"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "228"] <- "Southeastern"
+      PWSPinkChum$dist_name[PWSPinkChum$district == "229"] <- "Unakwik"
 
 
 
@@ -159,7 +159,7 @@ chum_out$dist_num_name <- interaction(chum_out$district, chum_out$dist_name, sep
 
 #summarizes the chum data, removes unwanted districts, and removes NAs
 district_chum_sum <- chum_out %>%  
-  filter(district != "225", district !="226", district !="227", # Only districts of interest
+  filter(district != "225", district !="226", district !="227", #Only districts with escapement goals
          district != "229")%>%
   group_by(year, district, dist_num_name, dist_name) %>%
   summarize(chum_dist = sum(chum_adjstd, na.rm = TRUE),
@@ -169,7 +169,7 @@ glimpse(district_chum_sum)
 
 
 #######################################################################################
-#calculate 20th and 60th percentiles for CHUMsalmon for each chum district
+#calculate 20th and 60th percentiles for CHUM salmon for each chum district
 #for proposed spawning escapement goals
 probs <- c(0.20, 0.60)
 chum_quantiles <- district_chum_sum %>%
@@ -190,7 +190,6 @@ upper_chum
 lower_chum <- chum_quantiles %>%
   filter(p== .2)
 lower_chum
-
 
 ######################################################################################
 #FIGURES
@@ -314,8 +313,9 @@ chum_all <- multiplot(chum_harv, chum_total,chum_perc_harv,  cols = 1)
 
 ########################################################################
 
-  ##############################################################
-#PRead Harvest date obtained from the 2017 PWS wild PINK salmon forecast spreadsheet
+##############################################################
+#Read Harvest date obtained from the 2017 PWS wild PINK salmon forecast spreadsheet
+#the harvest rate is calculated using estimates of (wild harvest/(wild harvest + escapement))
 p_harvest<- read_csv("data/Pink_Harvest_Rate.csv")
 p_harvest
 
